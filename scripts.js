@@ -24,107 +24,127 @@
  */
 
 class pokenmon {
-  constructor(data){
+
+  constructor(data) {
     this.database = data;
-    this.current_batch =[];
+    this.current_batch = [];
     this.next_batch = [];
-    this.display_count =3;
+    this.display_count = 3;
   }
 
+  // Shuffle random pokemon from the database
   draw_pokemon() {
-  const shuffle_pokemon = [...pokemon_data].sort(() => Math.random() - 0.5);
-  return shuffle_pokemon.slice(0, 3); 
+    const shuffle_pokemon = [...this.database].sort(
+      () => Math.random() - 0.5,
+    );
+    return shuffle_pokemon.slice(0, this.display_count);
   }
 
-  preload_next_pokemon() {
-}
-
-
-
-function show_cards() {
-  const card_container = document.getElementById("card-container");
-  if (!card_container) {
-    return;
-  }
-  card_container.innerHTML = "";
-  const template = document.getElementById("card-template");
-  if (!template) {
-    return;
+  // Preload image for refreshing page faster
+  preload_next_pokemon(batch) {
+    batch.forEach((pokemon) => {
+      const img = new Image();
+      img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`;
+    });
   }
 
-  const temp_box = document.createDocumentFragment();
+  // Format abilities 
+  formatted_abilities(abilities_string) {
+    if (!abilities_string) {
+      return "None";
+    }
+    return abilities_string
+      .split(",")
+      .map((ability) => ability.trim())
+      .map((ability) => {
+        return ability.charAt(0).toUpperCase() + ability.slice(1);
+      })
+      .join(", ");
+  }
 
+  // Helper function to set text content
+  set_text = (card_clone, selector, value) => {
+    const element = card_clone.querySelector(selector);
+    if (element) {
+      element.textContent = value;
+    }
+  };
 
-
-  random_pokemon.forEach((pokemon) => {
-
-    let curent_pokemon = [];
-
-    // The image URL is based on the Pokemon's ID, which is a property of the Pokemon object
-    let image_URL = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`;
-    
+  // Create a single card element
+  create_single_card(pokemon, template) {
     const card_clone = template.content.cloneNode(true);
     
+    // Set image source
     const img_element = card_clone.querySelector(".card-img");
-    img_element.src = image_URL;
+    img_element.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`;
     img_element.alt = pokemon.name;
 
-    let h_weight = `Height: ${pokemon.height/10} m, Weight: ${pokemon.weight/10} kg`;
-    let stats = `HP: ${pokemon.hp}, Attack: ${pokemon.attack}, Defense: ${pokemon.defense},
-     Sp. Atk: ${pokemon.sp_attack}, Sp. Def: ${pokemon.sp_defense}, Speed: ${pokemon.speed},
-     Total: ${pokemon.hp + pokemon.attack + pokemon.defense + pokemon.sp_attack + pokemon.sp_defense + pokemon.speed}`;
+    // Format types，some pokemon have two types, some only have one
     let types_string;
-    if (pokemon.type2){
-      types_string = `${pokemon.type1}, ${pokemon.type2}`;
-    } else {
-      types_string = pokemon.type1;
+      if (pokemon.type2) {
+        types_string = `${pokemon.type1}, ${pokemon.type2}`;
+      } else {
+        types_string = pokemon.type1;
+      }
+    
+    // Format abilities, height and weight, stats
+    const abilities_array = this.formatted_abilities(pokemon.abilities);
+    const h_weight = `Height: ${pokemon.height / 10}m | Weight: ${pokemon.weight / 10}kg`;
+    let stats = `HP: ${pokemon.hp} | ATK: ${pokemon.attack} | DEF: ${pokemon.defense} 
+    | Sp. ATK: ${pokemon.sp_attack} | Sp. DEF: ${pokemon.sp_defense}| SPD: ${pokemon.speed}
+    Tot : ${pokemon.hp + pokemon.attack + pokemon.defense + pokemon.sp_attack + pokemon.sp_defense + pokemon.speed}`;
+
+    // Set text content for the card
+    this.set_text(card_clone, ".card-title", pokemon.name.toUpperCase());
+    this.set_text(card_clone, ".card-type", `TYPE: ${types_string.toUpperCase()}`);
+    this.set_text(card_clone, ".card-id", `ID: ${pokemon.id}`);
+    this.set_text(card_clone, ".card-h_weight", h_weight);
+    this.set_text(card_clone, ".card-stats", stats);
+    this.set_text(card_clone, ".card-ability", `ABILITIES: ${abilities_array}`);
+    
+    return card_clone;
+  }
+
+  // Render multiple cards on the page
+  display_cards(batch_to_display) {
+
+    const card_container = document.getElementById("card-container");
+    card_container.innerHTML = "";
+    const template = document.getElementById("card-template");
+
+    if (!template || !card_container) {
+      return;
     }
 
-    const set_text = (selector, value) => {
-      const element = card_clone.querySelector(selector);
-      if (element) {
-        element.textContent = value;
-      }
-    };
+    const temp_box = document.createDocumentFragment();
 
-    set_text(".card-title", pokemon.name.toUpperCase());
-    set_text(".card-type", types_string.toUpperCase());
-    set_text(".card-id", `ID: ${pokemon.id}`);
-    set_text(".card-h_weight", h_weight);
-    set_text(".card-stats", stats);
+    batch_to_display.forEach((pokemon) => {
+      const finished_card = this.create_single_card(pokemon, template);
+      temp_box.appendChild(finished_card);
+    });
 
-    temp_box.appendChild(card_clone);
-  });
+    card_container.appendChild(temp_box);
+  }
 
-  card_container.appendChild(temp_box);
+  // Initialize
+  init() {
+    this.current_batch = this.draw_pokemon();
+    this.next_batch = this.draw_pokemon();
+
+    this.preload_next_pokemon(this.next_batch);
+    this.display_cards(this.current_batch);
+  }
+
+  // Pre-loading
+  load_next_batch() {
+    this.current_batch = this.next_batch;
+    this.display_cards(this.current_batch);
+
+    this.next_batch = this.draw_pokemon();
+    this.preload_next_pokemon(this.next_batch);
+  }
 }
 
-function editCardContent(card, newTitle, newImageURL) {
-  card.style.display = "block";
+const poke_dex_1 = new pokenmon(pokemon_data);
 
-  const cardHeader = card.querySelector("h2");
-  cardHeader.textContent = newTitle;
-
-  const cardImage = card.querySelector("img");
-  cardImage.src = newImageURL;
-  cardImage.alt = newTitle + " Poster";
-
-  // You can use console.log to help you debug!
-  // View the output by right clicking on your website,
-  // select "Inspect", then click on the "Console" tab
-  console.log("new card:", newTitle, "- html: ", card);
-}
-
-// This calls the addCards() function when the page is first loaded
-document.addEventListener("DOMContentLoaded", show_cards);
-
-function quoteAlert() {
-  console.log("Button Clicked!");
-  alert(
-    "I guess I can kiss heaven goodbye, because it got to be a sin to look this good!",
-  );
-}
-
-function random_pokemon() {
-  show_cards(); 
-}
+document.addEventListener("DOMContentLoaded", () => poke_dex_1.init());
