@@ -23,46 +23,80 @@
  *
  */
 
-const FRESH_PRINCE_URL =
-  "https://upload.wikimedia.org/wikipedia/en/3/33/Fresh_Prince_S1_DVD.jpg";
-const CURB_POSTER_URL =
-  "https://m.media-amazon.com/images/M/MV5BZDY1ZGM4OGItMWMyNS00MDAyLWE2Y2MtZTFhMTU0MGI5ZDFlXkEyXkFqcGdeQXVyMDc5ODIzMw@@._V1_FMjpg_UX1000_.jpg";
-const EAST_LOS_HIGH_POSTER_URL =
-  "https://static.wikia.nocookie.net/hulu/images/6/64/East_Los_High.jpg";
+class pokenmon {
+  constructor(data){
+    this.database = data;
+    this.current_batch =[];
+    this.next_batch = [];
+    this.display_count =3;
+  }
 
-// This is an array of strings (TV show titles)
-let titles = [
-  "Fresh Prince of Bel Air",
-  "Curb Your Enthusiasm",
-  "East Los High",
-];
-// Your final submission should have much more data than this, and
-// you should use more than just an array of strings to store it all.
+  draw_pokemon() {
+  const shuffle_pokemon = [...pokemon_data].sort(() => Math.random() - 0.5);
+  return shuffle_pokemon.slice(0, 3); 
+  }
 
-// This function adds cards the page to display the data in the array
-function showCards() {
-  const cardContainer = document.getElementById("card-container");
-  cardContainer.innerHTML = "";
-  const templateCard = document.querySelector(".card");
+  preload_next_pokemon() {
+}
 
-  for (let i = 0; i < titles.length; i++) {
-    let title = titles[i];
 
-    // This part of the code doesn't scale very well! After you add your
-    // own data, you'll need to do something totally different here.
-    let imageURL = "";
-    if (i == 0) {
-      imageURL = FRESH_PRINCE_URL;
-    } else if (i == 1) {
-      imageURL = CURB_POSTER_URL;
-    } else if (i == 2) {
-      imageURL = EAST_LOS_HIGH_POSTER_URL;
+
+function show_cards() {
+  const card_container = document.getElementById("card-container");
+  if (!card_container) {
+    return;
+  }
+  card_container.innerHTML = "";
+  const template = document.getElementById("card-template");
+  if (!template) {
+    return;
+  }
+
+  const temp_box = document.createDocumentFragment();
+
+
+
+  random_pokemon.forEach((pokemon) => {
+
+    let curent_pokemon = [];
+
+    // The image URL is based on the Pokemon's ID, which is a property of the Pokemon object
+    let image_URL = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`;
+    
+    const card_clone = template.content.cloneNode(true);
+    
+    const img_element = card_clone.querySelector(".card-img");
+    img_element.src = image_URL;
+    img_element.alt = pokemon.name;
+
+    let h_weight = `Height: ${pokemon.height/10} m, Weight: ${pokemon.weight/10} kg`;
+    let stats = `HP: ${pokemon.hp}, Attack: ${pokemon.attack}, Defense: ${pokemon.defense},
+     Sp. Atk: ${pokemon.sp_attack}, Sp. Def: ${pokemon.sp_defense}, Speed: ${pokemon.speed},
+     Total: ${pokemon.hp + pokemon.attack + pokemon.defense + pokemon.sp_attack + pokemon.sp_defense + pokemon.speed}`;
+    let types_string;
+    if (pokemon.type2){
+      types_string = `${pokemon.type1}, ${pokemon.type2}`;
+    } else {
+      types_string = pokemon.type1;
     }
 
-    const nextCard = templateCard.cloneNode(true); // Copy the template card
-    editCardContent(nextCard, title, imageURL); // Edit title and image
-    cardContainer.appendChild(nextCard); // Add new card to the container
-  }
+    const set_text = (selector, value) => {
+      const element = card_clone.querySelector(selector);
+      if (element) {
+        element.textContent = value;
+      }
+    };
+
+    set_text(".card-title", pokemon.name.toUpperCase());
+    set_text(".card-type", types_string.toUpperCase());
+    set_text(".card-id", `ID: ${pokemon.id}`);
+    set_text(".card-h_weight", h_weight);
+    set_text(".card-stats", stats);
+
+    temp_box.appendChild(card_clone);
+  });
+
+  card_container.appendChild(temp_box);
 }
 
 function editCardContent(card, newTitle, newImageURL) {
@@ -82,7 +116,7 @@ function editCardContent(card, newTitle, newImageURL) {
 }
 
 // This calls the addCards() function when the page is first loaded
-document.addEventListener("DOMContentLoaded", showCards);
+document.addEventListener("DOMContentLoaded", show_cards);
 
 function quoteAlert() {
   console.log("Button Clicked!");
@@ -91,7 +125,6 @@ function quoteAlert() {
   );
 }
 
-function removeLastCard() {
-  titles.pop(); // Remove last item in titles array
-  showCards(); // Call showCards again to refresh
+function random_pokemon() {
+  show_cards(); 
 }
