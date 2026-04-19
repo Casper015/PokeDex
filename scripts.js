@@ -112,8 +112,9 @@ class display {
   }
 
   // update cards per page
-  set_display_count(raw_value, refresh = true) {
+  set_display_count(raw_value) {
     const new_count = Number.parseInt(raw_value, 10);
+    // validate input
     if (Number.isNaN(new_count) || new_count < 1 || new_count > 8) {
       console.log("Invalid display count, must be between 1 and 8");
       if (this.display_count_input) {
@@ -122,18 +123,23 @@ class display {
       return false;
     }
 
+    // keep same position
+    let current_index = this.pokemon_data.current_index - (2 * this.display_count);
+
+    if (current_index < 0) {
+      current_index = 0;
+    }
+
     this.display_count = new_count;
     this.pokemon_data.display_count = new_count;
-    this.pokemon_data.current_index = 0;
+    this.pokemon_data.current_index = current_index;
 
     if (this.display_count_input) {
       this.display_count_input.value = String(new_count);
     }
 
-    if (refresh) {
-      this.refresh_batches();
-      console.log(`Display count updated: ${new_count}`);
-    }
+    this.refresh_batches();
+    console.log(`Display count updated: ${new_count}`);
 
     return true;
   }
