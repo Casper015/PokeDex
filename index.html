@@ -4,6 +4,7 @@
     <title>Pokemon Catalog | Home</title>
     <meta name="description" content="A Catalog of All Pokemon" />
     <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
     
     <script src="./data/pokemon_stats_1_9.js"></script>
     <script type="text/javascript" src="scripts.js"></script>
@@ -35,13 +36,13 @@
     </template>
 
     <div class="footer">
-      <button id="random-batch">Random Card!</button>
-      <button id ="sort-order-btn" class = "sort-menu">Ascending</button>
-        <select id="sort-dropdown" class="sort-menu">
+      <button id="random-batch" aria-label="Show random cards">Random Card!</button>
+      <button id ="sort-order-btn" class = "sort-menu" aria-label="Toggle sort order">Ascending</button>
+        <select id="sort-dropdown" class="sort-menu" aria-label="Select stat to sort by">
           <option value="">random</option>
         </select>
-      <button id="before-batch">Previous Card!</button>
-      <button id="next-batch">Next Card!</button>
+      <button id="before-batch" aria-label="Show previous batch of cards">Previous Card!</button>
+      <button id="next-batch" aria-label="Show next batch of cards">Next Card!</button>
     </div>
   </body>
 </html>
