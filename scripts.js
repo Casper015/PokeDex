@@ -10,7 +10,7 @@ class display {
 
     this.display_count = 3;
     this.active_sort_key = "";
-    this.ascending = false;
+    this.ascending = true;
 
     this.pokemon_data = new pokemon_data(this.database, this.display_count);
   }
@@ -49,10 +49,25 @@ class display {
     }
 
     if (switch_button) {
+      switch_button.textContent = this.ascending ? "Ascending" : "Descending";
       switch_button.addEventListener("click", () => {
+
+        let selected_key;
+        if (this.sort_dropdown) {
+          selected_key = this.sort_dropdown.value;
+        } else {
+          selected_key = this.active_sort_key;
+        }
+
+        if (!selected_key) {
+          console.log("No sort key selected, order toggle ignored");
+          return;
+        }
+
+        this.active_sort_key = selected_key;
         this.ascending = !this.ascending;
-        switch_button.textContent = this.ascending ? "Sort Ascending" : "Sort Descending";
-        this.sort_by_stat(this.active_sort_key);
+        switch_button.textContent = this.ascending ? "Ascending" : "Descending";
+        this.sort_by_stat(selected_key);
       });
     }
   }
@@ -60,6 +75,24 @@ class display {
   // Load next random batch of pokemon
   load_random_next_batch() {
     const { pokemon_data, pokemon_manager } = this;
+
+    // If currently in sorted mode, switch back to random mode first.
+    if (this.active_sort_key) {
+      this.active_sort_key = "";
+      this.ascending = true;
+
+      if (this.sort_dropdown) {
+        this.sort_dropdown.value = "";
+      }
+      if (this.switch_button) {
+        this.switch_button.textContent = "Ascending";
+      }
+
+      pokemon_data.apply_sort_by_stat("", this.ascending);
+      this.refresh_batches();
+      console.log("Switched to random mode");
+      return;
+    }
 
     this.current_batch = this.next_batch;
     pokemon_manager.display_cards(this.current_batch);
@@ -73,16 +106,16 @@ class display {
     const { pokemon_data } = this;
 
     this.active_sort_key = stat_name;
-    
+
+    pokemon_data.apply_sort_by_stat(stat_name, this.ascending);
+    this.refresh_batches();
+
     if (!stat_name) {
       console.log("Sort cleared, switched back to random mode");
       return;
-    }else{
-      pokemon_data.apply_sort_by_stat(stat_name, this.ascending);
-      console.log(`Applied sort by ${stat_name} in ${this.ascending ? "ascending" : "descending"} order`);
     }
 
-    this.refresh_batches();
+    console.log(`Applied sort by ${stat_name} in ${this.ascending ? "ascending" : "descending"} order`);
   }
 
 
@@ -225,17 +258,15 @@ class pokemon_data{
   apply_sort_by_stat(stat_name, ascending = false) {
     this.active_sort_key = stat_name;
     
+    if (!stat_name) {
+      this.active_sort_key = "";
+      this.ordered_pokemon = this.random_pokemon;
+      return;
+    }
+
     if (!this.sorted_cache[stat_name]) {
       this.sorted_cache[stat_name] = untils.sort_array(this.database, stat_name);
       this.sorted_cache_order[stat_name] = "asc";
-    }
-
-    if (!stat_name) {
-      this.active_sort_key = "";
-      this.random_pokemon = untils.shuffled_array(this.database);
-      this.ordered_pokemon = this.random_pokemon;
-      this.current_index = 0;
-      return;
     }
 
     const target_order = ascending ? "asc" : "desc";
