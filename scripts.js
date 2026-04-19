@@ -2,74 +2,103 @@
 class display {
 
   constructor(data, card_manager) {
-    this.database = data;
     this.pokemon_manager = card_manager;
-    
-    this.shuffled_pokemon = untils.shuffled_array(this.database);
-    this.current_index = 0;
+    this.database = data;
     
     this.current_batch = [];
     this.next_batch = [];
 
     this.display_count = 3;
-  }
+    this.active_sort_key = "";
 
-  // Shuffle random pokemon from the database
-  draw_pokemon() {
-    
-    // If We've drawn all cards, reshuffle and start over
-    if (this.current_index + this.display_count > this.shuffled_pokemon.length) {
-      console.log("All pokemon drawn, reshuffling...");
-      this.shuffled_pokemon = untils.shuffled_array(this.database)
-      this.current_index = 0;
-    }
-
-    // Select the next batch of pokemon
-    const selected = this.shuffled_pokemon.slice(
-      this.current_index, 
-      this.current_index + 
-      this.display_count);
-
-    this.current_index += this.display_count;
-
-    console.log("Drew pokemon:", selected);
-    return selected;
-  }
-
-  // Preload image for refreshing page faster
-  preload_images(batch) {
-    batch.forEach((pokemon) => {
-      const img = new Image();
-      img.src = untils.getSpriteUrl(pokemon.id);
-    });
+    this.pokemon_data = new pokemon_data(this.database, this.display_count);
   }
 
   // Initialize
   init() {
+    this.setup_controls();
+
     this.current_batch = this.draw_pokemon();
     this.next_batch = this.draw_pokemon();
 
-    this.preload_images(this.next_batch);
+    untils.preload_images(this.next_batch);
     this.pokemon_manager.display_cards(this.current_batch);
     console.log("----- Pokedex initialized -----");
   }
 
-  // Pre-loading
-  load_next_batch() {
+  setup_controls() {
+    // Random Pokemon Button
+    this.next_button = document.getElementById("next-batch");
+    // sort dropdown
+    this.sort_dropdown = document.getElementById("sort-dropdown");
+
+    if (this.next_button) {
+      this.next_button.addEventListener("click", () => {
+        console.log("Next button clicked");
+        this.load_random_next_batch();
+      });
+    }
+
+    if (this.sort_dropdown) {
+      this.populate_sort_dropdown();
+      this.sort_dropdown.addEventListener("change", (event) => {
+        this.sort_by_stat(event.target.value);
+      });
+    }
+  }
+
+  // Load next random batch of pokemon
+  load_random_next_batch() {
     this.current_batch = this.next_batch;
     this.pokemon_manager.display_cards(this.current_batch);
 
     this.next_batch = this.draw_pokemon();
-    this.preload_images(this.next_batch);
+    untils.preload_images(this.next_batch);
     console.log("----- Loaded next batch of pokemon -----");
   }
 
+  draw_pokemon() {
+    return this.pokemon_data.draw_pokemon();
+  }
+
   sort_by_stat(stat_name) {
-    const sorted = untils.sort_array(this.shuffled_pokemon, stat_name);
-    this.shuffled_pokemon = sorted;
-    this.current_index = 0;
+    this.active_sort_key = stat_name;
+    this.pokemon_data.apply_sort_by_stat(stat_name);
+
+    this.current_batch = this.draw_pokemon();
+    this.next_batch = this.draw_pokemon();
+    this.pokemon_manager.display_cards(this.current_batch);
+    untils.preload_images(this.next_batch);
+
+    if (!stat_name) {
+      console.log("Sort cleared, switched back to random mode");
+      return;
+    }
+
     console.log(`Pokemon sorted by ${stat_name}`);
   }
+
+
+  populate_sort_dropdown() {
+    this.sort_dropdown.innerHTML = "";
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Sort by Stats... (sort)";
+    this.sort_dropdown.appendChild(placeholder);
+
+    untils.pokemon_stats.forEach((stat) => {
+      const option = document.createElement("option");
+      option.value = stat;
+      option.textContent = untils.stat_labels[stat];
+      this.sort_dropdown.appendChild(option);
+    });
+  }
+
+  
+  next_button (){}
+  sort_dropdown (){}
+  
 }
 
 class pokenmon_card {
@@ -98,9 +127,9 @@ class pokenmon_card {
     const card_clone = template.content.cloneNode(true);
     
     // Set image source
-    const imgElement = card_clone.querySelector(".card-img");
-    imgElement.src = untils.getSpriteUrl(pokemon.id);
-    imgElement.alt = pokemon.name;
+    const img_element = card_clone.querySelector(".card-img");
+    img_element.src = untils.get_sprite_url(pokemon.id);
+    img_element.alt = pokemon.name;
 
     // Format types，some pokemon have two types, some only have one
     let types_string;
@@ -112,15 +141,15 @@ class pokenmon_card {
     
     // Format abilities, height and weight, stats
     const abilities = untils.formatted_abilities(pokemon.abilities);
-    const heightWeight = `Height: ${pokemon.height / 10}m | Weight: ${pokemon.weight / 10}kg`;
+    const height_weight = `Height: ${pokemon.height / 10}m | Weight: ${pokemon.weight / 10}kg`;
     const stats = untils.format_stats(pokemon);
 
     // Set text content for the card
     untils.set_text(card_clone, ".card-title", pokemon.name.toUpperCase());
     untils.set_text(card_clone, ".card-type", `TYPE: ${types_string.toUpperCase()}`);
     untils.set_text(card_clone, ".card-id", `ID: ${pokemon.id}`);
-    untils.set_text(card_clone, ".card-h_weight", heightWeight);
-    untils.set_text(card_clone, ".card-stats", stats);
+    untils.set_text(card_clone, ".card-h_weight", height_weight);
+    untils.set_inner_html(card_clone, ".card-stats", stats);
     untils.set_text(card_clone, ".card-ability", `ABILITIES: ${abilities}`);
     
     return card_clone;
@@ -128,10 +157,80 @@ class pokenmon_card {
 
 }
 
+class pokemon_data{
+  constructor(data, display_count){
+    this.database = data;
+
+    this.random_pokemon = untils.shuffled_array(this.database);
+    this.ordered_pokemon = this.random_pokemon;
+    this.current_index = 0;
+    this.display_count = display_count;
+    this.active_sort_key = "";
+   
+    this.sorted_cache = {};
+  } 
+
+  // Shuffle random pokemon from the database
+  draw_pokemon() {
+    
+    // If We've drawn all cards, reshuffle and start over
+    if (this.current_index + this.display_count > this.ordered_pokemon.length) {
+      if (this.active_sort_key) {
+        console.log("Reached end of sorted list, restarting from top...");
+      } else {
+        console.log("All pokemon drawn, reshuffling...");
+        this.random_pokemon = untils.shuffled_array(this.database);
+        this.ordered_pokemon = this.random_pokemon;
+      }
+      this.current_index = 0;
+    }
+
+    // Select the next batch of pokemon
+    const selected = this.ordered_pokemon.slice(
+      this.current_index, 
+      this.current_index + 
+      this.display_count);
+
+    this.current_index += this.display_count;
+
+    console.log("Drew pokemon:", selected);
+    return selected;
+  }
+
+  apply_sort_by_stat(stat_name) {
+    this.active_sort_key = stat_name;
+
+    if (!stat_name) {
+      this.active_sort_key = "";
+      this.random_pokemon = untils.shuffled_array(this.database);
+      this.ordered_pokemon = this.random_pokemon;
+      this.current_index = 0;
+      return;
+    }
+
+    if (!this.sorted_cache[stat_name]) {
+      this.sorted_cache[stat_name] = untils.sort_array([...this.database], stat_name);
+    }
+
+    this.active_sort_key = stat_name;
+    this.ordered_pokemon = this.sorted_cache[stat_name];
+    this.current_index = 0;
+  }
+
+
+  sort_by(key){
+    return untils.sort_array([...this.database], key);
+  }
+   
+  filter_by(type){
+
+  }
+}
+
 const untils = {
   
   pokemon_stats: ["hp", "attack", "defense", "sp_attack", "sp_defense", "speed"],
-  pokemon_max_stats: [255, 181, 230, 173, 230, 200],
+  pokemon_max_stats: [255, 181, 230, 173, 230, 200, 720],
 
   stat_labels: {
     hp: "HP",
@@ -144,20 +243,21 @@ const untils = {
 
   // Format base stats and total score
   format_stats(pokemon) {
-    const formatted_array = this.pokemon_stats.map((stat) => {
+    const formatted_array = this.pokemon_stats.map((stat, index) => {
       const label = this.stat_labels[stat];
       const value = pokemon[stat];
-      const max_value = this.pokemon_max_stats[this.pokemon_stats.indexOf(stat)];
-      return `${label}: ${value}/${max_value}`;
+      const max_value = this.pokemon_max_stats[index];
+      return `${label}: ${value}/${max_value}` ;
     });
 
-    const stats_string = formatted_array.join(" | ");
+    const stats_string = formatted_array.join("<br>");
     const total_score = this.pokemon_stats.reduce((sum, key) => {
       const value = pokemon[key];
       return sum + value;
     }, 0);
 
-    return `${stats_string} | Tot: ${total_score}`;
+    const max_total = this.pokemon_max_stats[6];
+    return `${stats_string}<br><strong>Tot: ${total_score}/${max_total}</strong>`;
   },
 
   // Format abilities
@@ -181,8 +281,16 @@ const untils = {
   },
 
   // Build artwork URL from pokemon id
-  getSpriteUrl(pokemon_id) {
+  get_sprite_url(pokemon_id) {
     return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon_id}.png`;
+  },
+
+  // Preload image for refreshing page faster
+  preload_images(batch) {
+    batch.forEach((pokemon) => {
+      const img = new Image();
+      img.src = untils.get_sprite_url(pokemon.id);
+    });
   },
 
   // Helper function to set text content
@@ -193,6 +301,15 @@ const untils = {
     }
   },
 
+  //Helper function toe set innerHTML content
+  set_inner_html(card_clone, selector, value) {
+    const element = card_clone.querySelector(selector);
+    if (element) {
+      element.innerHTML = value;
+    }
+  },
+
+  // 2way sort function
   sort_array(arr, key) {
     if (arr.length <= 1) {
       return arr;
@@ -232,10 +349,4 @@ document.addEventListener("DOMContentLoaded", () => {
   const pokedex = new display(pokemon_data_1_to_9, pokemon_card);
 
   pokedex.init();
-
-  const next_button = document.getElementById("next-batch");
-  next_button.addEventListener("click", () => {
-    console.log("Next button clicked");
-    pokedex.load_next_batch();
-  });
 });
