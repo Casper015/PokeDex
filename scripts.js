@@ -76,7 +76,6 @@ class display {
   load_random_next_batch() {
     const { pokemon_data, pokemon_manager } = this;
 
-    // If currently in sorted mode, switch back to random mode first.
     if (this.active_sort_key) {
       this.active_sort_key = "";
       this.ascending = true;
@@ -144,7 +143,7 @@ class display {
 
   
   next_button (){}
-  sort_dropdown (){}
+  before_button (){}
 
   refresh_batches() {
     const { pokemon_data, pokemon_manager } = this;
