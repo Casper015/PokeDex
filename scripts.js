@@ -115,8 +115,8 @@ class display {
   set_display_count(raw_value) {
     const new_count = Number.parseInt(raw_value, 10);
     // validate input
-    if (Number.isNaN(new_count) || new_count < 1 || new_count > 8) {
-      console.log("Invalid display count, must be between 1 and 8");
+    if (Number.isNaN(new_count) || new_count < 1 || new_count > 6) {
+      console.log("Invalid display count, must be between 1 and 6");
       if (this.display_count_input) {
         this.display_count_input.value = String(this.display_count);
       }
