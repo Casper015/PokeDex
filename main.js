@@ -48,7 +48,15 @@ class display {
     if (random_button) {
       random_button.addEventListener("click", () => {
         console.log("Random button clicked");
-        this.switch_to_random_mode();
+        
+        // if not in the random mod, change to random mod
+        if (this.active_sort_key) {
+          this.switch_to_random_mode();
+          return;
+        }
+        
+        //otherwise, load next batch
+        this.load_next_batch();
       });
     }
 
@@ -123,7 +131,7 @@ class display {
       return false;
     }
 
-    // keep same position
+    // keep same position *2 becuase to preloading the next branch
     let current_index = this.pokemon_data.current_index - (2 * this.display_count);
 
     if (current_index < 0) {
@@ -163,7 +171,7 @@ class display {
     }
 
     // Keep Random button dedicated to random behavior by reshuffling from start.
-    pokemon_data.random_pokemon = untils.shuffled_array(this.database);
+    pokemon_data.random_pokemon = utils.shuffled_array(this.database);
     pokemon_data.ordered_pokemon = pokemon_data.random_pokemon;
     pokemon_data.current_index = 0;
 
@@ -209,16 +217,16 @@ class display {
     place_holder.textContent = "Random";
     sort_dropdown.appendChild(place_holder);
 
-    untils.pokemon_stats.forEach((stat) => {
+    utils.pokemon_stats.forEach((stat) => {
       const option = document.createElement("option");
       option.value = stat;
-      option.textContent = untils.stat_labels[stat];
+      option.textContent = utils.stat_labels[stat];
       sort_dropdown.appendChild(option);
     });
 
     const total_option = document.createElement("option");
     total_option.value = "total";
-    total_option.textContent = untils.stat_labels.total;
+    total_option.textContent = utils.stat_labels.total;
     sort_dropdown.appendChild(total_option);
   }
 
@@ -241,7 +249,7 @@ class display {
     pokemon_manager.display_cards(this.current_batch);
 
     this.next_batch = pokemon_data.draw_pokemon();
-    untils.preload_images(this.next_batch);
+    utils.preload_images(this.next_batch);
     console.log("----- Loaded next batch of pokemon -----");
   }
 
@@ -253,7 +261,7 @@ class display {
     this.next_batch = pokemon_data.draw_pokemon();
 
     pokemon_manager.display_cards(this.current_batch);
-    untils.preload_images(this.next_batch);
+    utils.preload_images(this.next_batch);
   }
 }
 
@@ -285,7 +293,7 @@ class pokenmon_card {
     
     // Set image source
     const img_element = card_clone.querySelector(".card-img");
-    img_element.src = untils.get_sprite_url(pokemon.id);
+    img_element.src = utils.get_sprite_url(pokemon.id);
     img_element.alt = pokemon.name;
 
     // Format types，some pokemon have two types, some only have one
@@ -297,17 +305,17 @@ class pokenmon_card {
       }
     
     // Format abilities, height and weight, stats
-    const abilities = untils.formatted_abilities(pokemon.abilities);
+    const abilities = utils.formatted_abilities(pokemon.abilities);
     const height_weight = `Height: ${pokemon.height / 10}m | Weight: ${pokemon.weight / 10}kg`;
-    const stats = untils.format_stats(pokemon);
+    const stats = utils.format_stats(pokemon);
 
     // Set text content for the card
-    untils.set_text(card_clone, ".card-title", pokemon.name.toUpperCase());
-    untils.set_text(card_clone, ".card-type", `TYPE: ${types_string.toUpperCase()}`);
-    untils.set_text(card_clone, ".card-id", `ID: ${pokemon.id}`);
-    untils.set_text(card_clone, ".card-h_weight", height_weight);
-    untils.set_inner_html(card_clone, ".card-stats", stats);
-    untils.set_text(card_clone, ".card-ability", `ABILITIES: ${abilities}`);
+    utils.set_text(card_clone, ".card-title", pokemon.name.toUpperCase());
+    utils.set_text(card_clone, ".card-type", `TYPE: ${types_string.toUpperCase()}`);
+    utils.set_text(card_clone, ".card-id", `ID: ${pokemon.id}`);
+    utils.set_text(card_clone, ".card-h_weight", height_weight);
+    utils.set_inner_html(card_clone, ".card-stats", stats);
+    utils.set_text(card_clone, ".card-ability", `ABILITIES: ${abilities}`);
     
     return card_clone;
   }
@@ -320,7 +328,7 @@ class pokemon_data{
     this.display_count = display_count;
     
     this.current_index = 0;
-    this.random_pokemon = untils.shuffled_array(this.database);
+    this.random_pokemon = utils.shuffled_array(this.database);
     this.ordered_pokemon = this.random_pokemon;
     
     this.active_sort_key = "";
@@ -337,7 +345,7 @@ class pokemon_data{
         console.log("Reached end of sorted list, restarting from top...");
       } else {
         console.log("All pokemon drawn, reshuffling...");
-        this.random_pokemon = untils.shuffled_array(this.database);
+        this.random_pokemon = utils.shuffled_array(this.database);
         this.ordered_pokemon = this.random_pokemon;
       }
       this.current_index = 0;
@@ -365,7 +373,7 @@ class pokemon_data{
     }
 
     if (!this.sorted_cache[stat_name]) {
-      this.sorted_cache[stat_name] = untils.sort_array(this.database, stat_name);
+      this.sorted_cache[stat_name] = utils.sort_array(this.database, stat_name);
       this.sorted_cache_order[stat_name] = "asc";
     }
 
@@ -383,7 +391,7 @@ class pokemon_data{
 
 
   sort_by(key){
-    return untils.sort_array([...this.database], key);
+    return utils.sort_array([...this.database], key);
   }
    
   filter_by(type){
@@ -391,7 +399,7 @@ class pokemon_data{
   }
 }
 
-const untils = {
+const utils = {
   
   pokemon_stats: ["hp", "attack", "defense", "sp_attack", "sp_defense", "speed"],
   pokemon_max_stats: [255, 181, 230, 173, 230, 200, 720],
@@ -408,19 +416,18 @@ const untils = {
 
   // Format base stats and total score
   format_stats(pokemon) {
-    const { pokemon_stats, stat_labels, pokemon_max_stats } = untils;
 
-    const formatted_array = pokemon_stats.map((stat, index) => {
-      const label = stat_labels[stat];
+    const formatted_array = utils.pokemon_stats.map((stat, index) => {
+      const label = utils.stat_labels[stat];
       const value = pokemon[stat];
-      const max_value = pokemon_max_stats[index];
+      const max_value = utils.pokemon_max_stats[index];
       return `${label}: ${value}/${max_value}` ;
     });
 
     const stats_string = formatted_array.join("<br>");
     const total_score = this.total_score(pokemon);
 
-    const max_total = pokemon_max_stats[6];
+    const max_total = utils.pokemon_max_stats[6];
     return `${stats_string}<br><strong>Tot: ${total_score}/${max_total}</strong>`;
   },
 
@@ -441,8 +448,7 @@ const untils = {
 
   // Calculate total score
   total_score(pokemon) {
-    const { pokemon_stats } = untils;
-    return pokemon_stats.reduce((sum, key) => {
+    return utils.pokemon_stats.reduce((sum, key) => {
       const value = pokemon[key];
       return sum + value;
     }, 0);
@@ -462,7 +468,7 @@ const untils = {
   preload_images(batch) {
     batch.forEach((pokemon) => {
       const img = new Image();
-      img.src = untils.get_sprite_url(pokemon.id);
+      img.src = utils.get_sprite_url(pokemon.id);
     });
   },
 
@@ -492,16 +498,16 @@ const untils = {
     const mid = Math.floor(arr.length / 2);
 
     // left and right halves
-    const left = untils.sort_array(arr.slice(0, mid), key);
-    const right = untils.sort_array(arr.slice(mid), key);
+    const left = utils.sort_array(arr.slice(0, mid), key);
+    const right = utils.sort_array(arr.slice(mid), key);
 
-    return untils.merge_arrays(left, right, key);
+    return utils.merge_arrays(left, right, key);
   },
 
   // if it total, make another sum
   get_sort_value(pokemon, key) {
     if (key === "total") {
-      return untils.total_score(pokemon);
+      return utils.total_score(pokemon);
     }
 
     const value = pokemon[key];
@@ -514,8 +520,8 @@ const untils = {
 
     while (i < left.length && j < right.length) {
       // insert the smallest element into the merged array
-      const left_value = untils.get_sort_value(left[i], key);
-      const right_value = untils.get_sort_value(right[j], key);
+      const left_value = utils.get_sort_value(left[i], key);
+      const right_value = utils.get_sort_value(right[j], key);
 
       if (left_value < right_value) {
         merged.push(left[i]);
