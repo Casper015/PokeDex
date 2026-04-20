@@ -156,24 +156,17 @@ class display {
   switch_to_random_mode() {
     const { pokemon_data } = this;
 
-    if (this.active_sort_key) {
-      this.active_sort_key = "";
-      this.ascending = true;
+    this.active_sort_key = "";
+    this.ascending = true;
 
-      if (this.sort_dropdown) {
-        this.sort_dropdown.value = "";
-      }
-      if (this.switch_button) {
-        this.switch_button.textContent = "Ascending";
-      }
-
-      pokemon_data.apply_sort_by_stat("", this.ascending);
+    if (this.sort_dropdown) {
+      this.sort_dropdown.value = "";
+    }
+    if (this.switch_button) {
+      this.switch_button.textContent = "Ascending";
     }
 
-    // Keep Random button dedicated to random behavior by reshuffling from start.
-    pokemon_data.random_pokemon = utils.shuffled_array(this.database);
-    pokemon_data.ordered_pokemon = pokemon_data.random_pokemon;
-    pokemon_data.current_index = 0;
+    pokemon_data.switch_to_random_mode();
 
     this.refresh_batches();
     this.update_random_button_text();
@@ -184,16 +177,17 @@ class display {
   sort_by_stat(stat_name) {
     const { pokemon_data } = this;
 
+    if (!stat_name) {
+      this.switch_to_random_mode();
+      console.log("Sort cleared, switched back to random mode");
+      return;
+    }
+
     this.active_sort_key = stat_name;
 
     pokemon_data.apply_sort_by_stat(stat_name, this.ascending);
     this.refresh_batches();
     this.update_random_button_text();
-
-    if (!stat_name) {
-      console.log("Sort cleared, switched back to random mode");
-      return;
-    }
 
     console.log(`Applied sort by ${stat_name} in ${this.ascending ? "ascending" : "descending"} order`);
   }
@@ -336,6 +330,14 @@ class pokemon_data{
     this.sorted_cache_order = {};
   } 
 
+  // Reset random mode state in one place.
+  switch_to_random_mode() {
+    this.active_sort_key = "";
+    this.random_pokemon = utils.shuffled_array(this.database);
+    this.ordered_pokemon = this.random_pokemon;
+    this.current_index = 0;
+  }
+
   // Shuffle random pokemon from the database
   draw_pokemon() {
     
@@ -367,9 +369,7 @@ class pokemon_data{
     this.active_sort_key = stat_name;
     
     if (!stat_name) {
-      this.active_sort_key = "";
-      let current_index = 0;
-      this.ordered_pokemon = this.random_pokemon;
+      this.switch_to_random_mode();
       return;
     }
 
@@ -447,7 +447,7 @@ const utils = {
   // Calculate total score
   total_score(pokemon) {
     return utils.pokemon_stats.reduce((sum, key) => {
-      const value = pokemon[key];
+      const value = Number.isFinite(pokemon[key]) ? (pokemon[key]) : 0;;
       return sum + value;
     }, 0);
   },
