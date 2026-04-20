@@ -368,6 +368,7 @@ class pokemon_data{
     
     if (!stat_name) {
       this.active_sort_key = "";
+      let current_index = 0;
       this.ordered_pokemon = this.random_pokemon;
       return;
     }
@@ -377,7 +378,12 @@ class pokemon_data{
       this.sorted_cache_order[stat_name] = "asc";
     }
 
-    const target_order = ascending ? "asc" : "desc";
+    let target_order;
+    if (ascending) {
+      target_order = "asc";
+    } else {
+      target_order = "desc";
+    }
     if (this.sorted_cache_order[stat_name] !== target_order) {
       // Reverse in place for asc or desc
       this.sorted_cache[stat_name].reverse();
@@ -389,14 +395,6 @@ class pokemon_data{
     this.current_index = 0;
   }
 
-
-  sort_by(key){
-    return utils.sort_array([...this.database], key);
-  }
-   
-  filter_by(type){
-
-  }
 }
 
 const utils = {
@@ -472,6 +470,35 @@ const utils = {
     });
   },
 
+  sort_array(arr, key) {
+    const sorted = [...arr];
+
+    if (key === "total") {
+      sorted.sort(function(a, b) {
+        const diff = utils.total_score(a) - utils.total_score(b);
+        if (diff !== 0) {
+          return diff;
+        } else {
+          return a.id - b.id;
+        }
+      });
+    } else {
+      sorted.sort(function(a, b) {
+        const a_value = Number.isFinite(a[key]) ? a[key] : 0;
+        const b_value = Number.isFinite(b[key]) ? b[key] : 0;
+        const diff = a_value - b_value;
+        if (diff !== 0) {
+          return diff;
+        } else {
+          return a.id - b.id;
+        }
+      });
+    }
+
+    return sorted;
+  },
+
+
   // Helper function to set text content
   set_text(card_clone, selector, value) {
     const element = card_clone.querySelector(selector);
@@ -488,6 +515,7 @@ const utils = {
     }
   },
 
+  /*
   // 2way sort function
   sort_array(arr, key) {
     if (arr.length <= 1) {
@@ -504,15 +532,6 @@ const utils = {
     return utils.merge_arrays(left, right, key);
   },
 
-  // if it total, make another sum
-  get_sort_value(pokemon, key) {
-    if (key === "total") {
-      return utils.total_score(pokemon);
-    }
-
-    const value = pokemon[key];
-    return Number.isFinite(value) ? value : 0;
-  },
 
   merge_arrays(left, right, key) {
     const merged = [];
@@ -533,7 +552,9 @@ const utils = {
     }
 
     return merged.concat(left.slice(i)).concat(right.slice(j));
-  }
+  } */
+
+  
 };
 
 document.addEventListener("DOMContentLoaded", () => {
